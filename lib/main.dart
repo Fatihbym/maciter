@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'services/deep_link_service.dart';
 import 'services/auth_service.dart';
+import 'services/tracking_service.dart';
 import 'screens/login_screen.dart';
 import 'webview_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  await TrackingService.init();
 
   final deepLinkService = DeepLinkService();
   await deepLinkService.init();

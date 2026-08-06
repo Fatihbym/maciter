@@ -24,6 +24,8 @@
     <string>????</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>Size daha iyi bir deneyim ve kişiselleştirilmiş hizmet sunabilmek için izninize ihtiyaç duyuyoruz.</string>
     
     <!-- App Transport Security (WebView için Ağ İzni) -->
     <key>NSAppTransportSecurity</key>
