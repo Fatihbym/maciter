@@ -13,6 +13,7 @@ import 'dart:io';
 import 'services/deep_link_service.dart';
 import 'services/js_interceptor_service.dart';
 import 'services/auth_service.dart';
+import 'services/tracking_service.dart';
 import 'screens/login_screen.dart';
 
 class WebViewScreen extends StatefulWidget {
@@ -377,6 +378,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     if (_isFirstLoad) {
                       FlutterNativeSplash.remove();
                       _isFirstLoad = false;
+                      TrackingService.checkATTAndHandleCookies(controller);
+                    } else {
+                      TrackingService.handleCookiesIfATTDenied(controller);
                     }
                     pullToRefreshController.endRefreshing();
                     if (_isReloading) {
