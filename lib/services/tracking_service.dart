@@ -3,7 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class TrackingService {
-  /// WebView açıldıktan sonra ATT iznini ister ve kullanıcı izin vermezse çerez iznini reddedip banner'ı siler.
+  static Future<bool> isATTDenied() async {
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      return status == TrackingStatus.denied || status == TrackingStatus.restricted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// WebView açıldıktan sonra ATT iznini ister ve kullanıcı izin vermezse çerez iznini reddedip 3. taraf çerezleri engeller.
   static Future<void> checkATTAndHandleCookies(InAppWebViewController? controller) async {
     try {
       TrackingStatus status = await AppTrackingTransparency.trackingAuthorizationStatus;
@@ -13,7 +22,7 @@ class TrackingService {
       }
 
       if (status == TrackingStatus.denied || status == TrackingStatus.restricted) {
-        rejectAndRemoveCookieBanner(controller);
+        await applyStrictPrivacyMode(controller);
       }
     } catch (e) {
       debugPrint("ATT Error: $e");
@@ -24,19 +33,40 @@ class TrackingService {
     try {
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status == TrackingStatus.denied || status == TrackingStatus.restricted) {
-        rejectAndRemoveCookieBanner(controller);
+        await applyStrictPrivacyMode(controller);
       }
     } catch (e) {
       debugPrint("ATT Check Error: $e");
     }
   }
 
-  static void rejectAndRemoveCookieBanner(InAppWebViewController? controller) {
+  static Future<void> applyStrictPrivacyMode(InAppWebViewController? controller) async {
     if (controller == null) return;
+
+    try {
+      await controller.setSettings(
+        settings: InAppWebViewSettings(thirdPartyCookiesEnabled: false),
+      );
+    } catch (e) {
+      debugPrint("Error disabling thirdPartyCookies: $e");
+    }
+
     const jsCode = """
       (function() {
+        // Disable Google Analytics & Tag Manager tracking
+        window['ga-disable-UA-'] = true;
+        window['ga-disable-G-'] = true;
+        if (typeof window.gtag === 'function') {
+          window.gtag('consent', 'default', {
+            'ad_storage': 'denied',
+            'analytics_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied'
+          });
+        }
+        
         function tryRejectCookies() {
-          var rejectBtn = document.getElementById('cookieReject');
+          var rejectBtn = document.getElementById('cookieReject') || document.getElementById('cookieAcceptNecessary');
           if (rejectBtn) {
             rejectBtn.click();
           }
@@ -59,6 +89,6 @@ class TrackingService {
         }, 300);
       })();
     """;
-    controller.evaluateJavascript(source: jsCode);
+    await controller.evaluateJavascript(source: jsCode);
   }
 }

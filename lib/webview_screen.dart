@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:async';
+import 'dart:collection';
 import 'dart:ui';
 import 'dart:io';
 
@@ -71,21 +72,46 @@ class _WebViewScreenState extends State<WebViewScreen> {
     });
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final hasInternet = !results.contains(ConnectivityResult.none);
-      if (mounted && _hasInternet != hasInternet) {
-        setState(() {
-          _hasInternet = hasInternet;
-        });
-        if (hasInternet && !_isFirstLoad) {
-          _webViewController?.reload();
-        }
-      }
+      _updateConnectivity(results);
     });
 
     Connectivity().checkConnectivity().then((results) {
-      final hasInternet = !results.contains(ConnectivityResult.none);
-      if (mounted) setState(() => _hasInternet = hasInternet);
+      _updateConnectivity(results);
     });
+  }
+
+  Future<bool> _checkActualInternet() async {
+    try {
+      final result = await InternetAddress.lookup('bayi.maciterkuafortoptan.com')
+          .timeout(const Duration(seconds: 3));
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> _updateConnectivity(List<ConnectivityResult> results) async {
+    bool hasInternet = results.any((r) => r != ConnectivityResult.none);
+    if (!hasInternet) {
+      hasInternet = await _checkActualInternet();
+    }
+    if (mounted && _hasInternet != hasInternet) {
+      setState(() {
+        _hasInternet = hasInternet;
+      });
+      if (hasInternet && !_isFirstLoad) {
+        _webViewController?.reload();
+      }
+    }
+  }
+
+  Future<void> _manualCheckConnectivity() async {
+    final results = await Connectivity().checkConnectivity();
+    await _updateConnectivity(results);
+    if (_hasInternet) {
+      _webViewController?.reload();
+    }
   }
 
 
@@ -208,7 +234,17 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
-                const CircularProgressIndicator(color: Colors.black87),
+                ElevatedButton.icon(
+                  onPressed: _manualCheckConnectivity,
+                  icon: const Icon(CupertinoIcons.refresh),
+                  label: const Text("Tekrar Dene"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
           ),
@@ -307,7 +343,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   ),
                   initialSettings: InAppWebViewSettings(
                     javaScriptEnabled: true,
-                    thirdPartyCookiesEnabled: true,
+                    thirdPartyCookiesEnabled: false,
                     sharedCookiesEnabled: true,
                     useShouldInterceptAjaxRequest: true,
                     useShouldInterceptFetchRequest: true,
@@ -316,6 +352,25 @@ class _WebViewScreenState extends State<WebViewScreen> {
                     allowsBackForwardNavigationGestures: true,
                     userAgent: AuthService.customUserAgent,
                   ),
+                  initialUserScripts: UnmodifiableListView([
+                    UserScript(
+                      source: """
+                        (function() {
+                          var style = document.createElement('style');
+                          style.id = 'bym-cookie-hide-style';
+                          style.innerHTML = '#cookieBanner, .cookie-banner { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
+                          if (document.head) {
+                            document.head.appendChild(style);
+                          } else {
+                            document.addEventListener('DOMContentLoaded', function() {
+                              if (document.head) document.head.appendChild(style);
+                            });
+                          }
+                        })();
+                      """,
+                      injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+                    ),
+                  ]),
                   onWebViewCreated: (controller) async {
                     _webViewController = controller;
                     await AuthService().syncCookiesToWebView();
@@ -415,7 +470,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
                                       bottom: 90px !important;
                                       height: calc(100% - 90px) !important;
                                   }
-                                  #cookieBanner, .cookie-banner, .fixed-bottom, .sticky-bottom, [class*="bottom-nav"] {
+                                  #cookieBanner, .cookie-banner {
+                                      display: none !important;
+                                      visibility: hidden !important;
+                                      opacity: 0 !important;
+                                      pointer-events: none !important;
+                                  }
+                                  .fixed-bottom, .sticky-bottom, [class*="bottom-nav"] {
                                       bottom: 90px !important;
                                   }
                                   .whatsapp-float, #scrollToTopBtn {
