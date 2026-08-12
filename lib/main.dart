@@ -17,8 +17,16 @@ void main() async {
   final authService = AuthService();
   await authService.init();
 
-  // Default System UI mode
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+  // Enable Edge-to-Edge display and transparent system bars
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   
   // If we have a saved session cookie, we can try to start in WebViewScreen.
   // If the session is expired, the server will redirect to /b2b/giris, which will automatically be intercepted 

@@ -324,9 +324,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
         backgroundColor: Colors.white,
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: const SystemUiOverlayStyle(
-            statusBarColor: Colors.white,
+            statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,
-            systemNavigationBarColor: Colors.white,
+            systemNavigationBarColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.dark,
           ),
           child: SafeArea(

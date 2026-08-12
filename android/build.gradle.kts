@@ -17,17 +17,37 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+    
+    val buildFile = project.file("build.gradle")
+    if (buildFile.exists()) {
+        try {
+            val content = buildFile.readText()
+            if (content.contains("proguard-android.txt")) {
+                buildFile.writeText(content.replace("proguard-android.txt", "proguard-android-optimize.txt"))
+            }
+        } catch (e: Exception) {}
+    }
 }
 
 subprojects {
     val configureProject = {
         val androidExt = project.extensions.findByName("android")
         if (androidExt != null) {
-            // Force compileSdk and targetSdk to 36 using robust method iteration
+            // Force compileSdk, buildToolsVersion and targetSdk to 36 using robust method iteration
             androidExt.javaClass.methods.forEach { method ->
                 if (method.name == "setCompileSdk" || method.name == "compileSdk" || method.name == "setCompileSdkVersion") {
                     try {
                         method.invoke(androidExt, 36)
+                    } catch (e: Exception) {}
+                }
+                if (method.name == "setBuildToolsVersion" || method.name == "buildToolsVersion") {
+                    try {
+                        method.invoke(androidExt, "36.0.0")
+                    } catch (e: Exception) {}
+                }
+                if (method.name == "setNdkVersion" || method.name == "ndkVersion") {
+                    try {
+                        method.invoke(androidExt, "28.2.13676358")
                     } catch (e: Exception) {}
                 }
             }
